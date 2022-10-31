@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt')
 const shortid = require('shortid')
 
 exports.signup = (req, res) => {
-  User.findOne({ email: req.body.email }).exec((error, user) => {
+  User.findOne({ mobileNo: req.body.mobileNo }).exec((error, user) => {
     if (user)
       return res.status(400).json({
         message: 'Admin already registered',
@@ -17,13 +17,15 @@ exports.signup = (req, res) => {
         role = 'super-admin'
       }
 
-      const { firstName, lastName, email, password } = req.body
+      const { firstName, lastName, mobileNo, email, otp, password } = req.body
       const hash_password = await bcrypt.hash(password, 10)
       const _user = new User({
         firstName,
         lastName,
+        mobileNo,
         email,
         hash_password,
+        otp,
         username: shortid.generate(),
         role,
       })
@@ -31,7 +33,7 @@ exports.signup = (req, res) => {
       _user.save((error, data) => {
         if (error) {
           return res.status(400).json({
-            message: 'Something went wrong',
+            message: {error},
           })
         }
 
@@ -46,7 +48,7 @@ exports.signup = (req, res) => {
 }
 
 exports.signin = (req, res) => {
-  User.findOne({ email: req.body.email }).exec(async (error, user) => {
+  User.findOne({ mobileNo: req.body.mobileNo }).exec(async (error, user) => {
     if (error) return res.status(400).json({ error })
     if (user) {
       const isPassword = await user.authenticate(req.body.password)
@@ -59,11 +61,11 @@ exports.signin = (req, res) => {
           process.env.JWT_SECRET,
           { expiresIn: '1d' }
         )
-        const { _id, firstName, lastName, email, role, fullName } = user
+        const { _id, firstName, lastName, mobileNo, email, role, fullName } = user
         res.cookie('token', token, { expiresIn: '1d' })
         res.status(200).json({
           token,
-          user: { _id, firstName, lastName, email, role, fullName },
+          user: { _id, firstName, lastName, mobileNo, email, role, fullName },
         })
       } else {
         return res.status(400).json({
